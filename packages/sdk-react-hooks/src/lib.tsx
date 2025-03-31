@@ -25,7 +25,7 @@ export {
 } from "./hooks/meta";
 export type { RemotePeer, RemoteTrack } from "./hooks/meta";
 
-export { usePublisher, usePublisherStatus } from "./hooks/publisher";
+export { usePublisher, usePublisherStatus, useScreenPublisher } from "./hooks/publisher";
 
 export {
   useConsumer,

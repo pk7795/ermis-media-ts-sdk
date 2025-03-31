@@ -15,6 +15,9 @@ import {
   stringToKind,
   JoinInfo,
   SessionStatus,
+  AudioMixerMode,
+  ScreenSession,
+  ScreenSessionConfig
 } from "@atm0s-media-sdk/core";
 
 export enum ContextEvent {
@@ -57,6 +60,7 @@ export class Publisher {
 
 export class Context extends EventEmitter {
   session: Session;
+  screenSession: ScreenSession;
   peers: Map<string, RoomPeerJoined> = new Map();
   tracks: Map<string, RoomTrackStarted> = new Map();
 
@@ -65,7 +69,7 @@ export class Context extends EventEmitter {
 
   audio_publisher: Map<string, Publisher> = new Map();
   video_publisher: Map<string, Publisher> = new Map();
-
+  screen_publisher: Map<string, Publisher> = new Map();
   constructor(
     gateway: string,
     cfg: SessionConfig,
@@ -75,6 +79,16 @@ export class Context extends EventEmitter {
     super();
     this.session = new Session(gateway, cfg);
     this.init();
+    const config: ScreenSessionConfig = {
+      join: {
+        room: cfg.join?.room!,
+        peer: cfg.join?.peer! + "-screen",
+        publish: { peer: true, tracks: true },
+        subscribe: { peers: true, tracks: false },
+      },
+    };
+    this.screenSession = new ScreenSession(gateway, config);
+    this.initScreenSession();
   }
 
   init() {
@@ -93,16 +107,20 @@ export class Context extends EventEmitter {
     });
 
     this.session.on(SessionEvent.ROOM_PEER_JOINED, (peer: RoomPeerJoined) => {
+      console.log("[SessionContext] peer joined", peer);
+
       this.peers.set(peer.peer, peer);
       this.emit(ContextEvent.PeersUpdated);
     });
     this.session.on(SessionEvent.ROOM_PEER_LEAVED, (peer: RoomPeerLeaved) => {
+      console.log("[SessionContext] peer leaved", peer);
       this.peers.delete(peer.peer);
       this.emit(ContextEvent.PeersUpdated);
     });
     this.session.on(
       SessionEvent.ROOM_TRACK_STARTED,
       (track: RoomTrackStarted) => {
+        console.log("[SessionContext] track started", track);
         this.tracks.set(track.peer + "/" + track.track, track);
         this.emit(ContextEvent.TracksUpdated);
         this.emit(ContextEvent.PeerTracksUpdated + track.peer);
@@ -111,6 +129,7 @@ export class Context extends EventEmitter {
     this.session.on(
       SessionEvent.ROOM_TRACK_STOPPED,
       (track: RoomTrackStopped) => {
+        console.log("[SessionContext] track stopped", track);
         this.tracks.delete(track.peer + "/" + track.track);
         this.emit(ContextEvent.TracksUpdated);
         this.emit(ContextEvent.PeerTracksUpdated + track.peer);
@@ -120,7 +139,16 @@ export class Context extends EventEmitter {
       this.emit(ContextEvent.RoomUpdated, e);
     });
   }
+  initScreenSession() {
+    // Set up screen session event handlers
+    this.screenSession.on(SessionEvent.SESSION_CHANGED, (state: SessionStatus) => {
+      this.emit(ContextEvent.SessionUpdated + '.screen', state);
+    });
 
+    this.screenSession.on(SessionEvent.ROOM_CHANGED, (e?: JoinInfo) => {
+      this.emit(ContextEvent.RoomUpdated + '.screen', e);
+    });
+  }
   get room(): JoinInfo | undefined {
     return this.session.room;
   }
@@ -187,6 +215,63 @@ export class Context extends EventEmitter {
 
   disconnect() {
     this.session.disconnect();
+  }
+  connectScreen(token: string, version: string) {
+    if (!this.screenSession) {
+      throw new Error('Screen session not initialized');
+    }
+    return this.screenSession.connect(token, version);
+  }
+
+  restartScreenIce() {
+    if (!this.screenSession) {
+      throw new Error('Screen session not initialized');
+    }
+    return this.screenSession.restartIce();
+  }
+
+  async joinScreen(info: any, token: string) {
+    if (!this.screenSession) {
+      throw new Error('Screen session not initialized');
+    }
+    await this.screenSession.join(info, token);
+  }
+
+  async leaveScreen() {
+    if (!this.screenSession) {
+      throw new Error('Screen session not initialized');
+    }
+    await this.screenSession.leave();
+  }
+
+  disconnectScreen() {
+    if (!this.screenSession) {
+      throw new Error('Screen session not initialized');
+    }
+    this.screenSession.disconnect();
+  }
+  getOrCreateScreenPublisher(
+    name: string,
+    media: Kind | MediaStreamTrack,
+    cfg?: PublisherConfig,
+  ): Publisher {
+    if (!this.screenSession) {
+      throw new Error('Screen session not initialized');
+    }
+
+    let publisher = this.screen_publisher.get(name);
+
+    if (!publisher) {
+      let sender = this.screenSession.sender(name, media, cfg);
+      publisher = new Publisher(sender);
+      this.screen_publisher.set(name, publisher);
+      return publisher;
+    } else {
+      return publisher;
+    }
+  }
+  isScreenSessionAvailable() {
+    return this.screenSession !== null;
   }
 }
 

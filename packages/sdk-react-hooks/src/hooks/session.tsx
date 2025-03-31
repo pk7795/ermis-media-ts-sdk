@@ -22,6 +22,28 @@ class SessionWrap {
   disconnect = () => {
     this.ctx.disconnect();
   };
+  // screen Session
+  initScreenSession = () => {
+    return this.ctx.initScreenSession();
+  }
+  connectScreen = (token: string) => {
+    return this.ctx.connectScreen(token, VERSION);
+  };
+  restartScreenIce = () => {
+    return this.ctx.restartScreenIce();
+  }
+  joinScreen = async (info: any, token: string) => {
+    await this.ctx.joinScreen(info, token);
+  }
+  leaveScreen = async () => {
+    await this.ctx.leaveScreen();
+  }
+  disconnectScreen = () => {
+    this.ctx.disconnectScreen();
+  }
+  isScreenSessionAvailable = () => {
+    return this.ctx.isScreenSessionAvailable();
+  }
 }
 
 export function useSession() {

@@ -34,3 +34,14 @@ export function usePublisherStatus(
   }, [publisher]);
   return status;
 }
+export function useScreenPublisher(
+  name: string,
+  media_or_kind: Kind | MediaStreamTrack,
+  cfg?: PublisherConfig,
+) {
+  const ctx = useContext(Atm0sMediaContext);
+  return useMemo(
+    () => ctx.getOrCreateScreenPublisher(name, media_or_kind, cfg),
+    [name, media_or_kind, cfg],
+  );
+}

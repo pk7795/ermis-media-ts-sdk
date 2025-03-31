@@ -1,10 +1,11 @@
 export { Session, SessionEvent } from "./session";
+export { ScreenSession } from "./screen_session";
 export { TrackSender, TrackSenderEvent } from "./sender";
 export type { TrackSenderConfig } from "./sender";
 export { TrackReceiver, TrackReceiverEvent } from "./receiver";
 export * from "./events";
 export { EventEmitter } from "./utils";
-
+export type { ScreenSessionConfig } from "./screen_session";
 export type {
   AudioMixerConfig,
   AudioMixer,
@@ -28,8 +29,8 @@ export {
   kindToString,
   Kind,
 } from "./types";
-export { SessionStatus  } from "./session";
-export type { SessionConfig, JoinInfo  } from "./session";
+export { SessionStatus } from "./session";
+export type { SessionConfig, JoinInfo } from "./session";
 
 export {
   Receiver_Status as TrackReceiverStatus,
